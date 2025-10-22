@@ -1,0 +1,2 @@
+# Este archivo asegura que el directorio data/ sea incluido en Git
+# pero mantiene el directorio vacío para nuevas instalaciones

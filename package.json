@@ -1,0 +1,24 @@
+{
+  "name": "realtime-meeting-copilot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI-powered meeting copilot with real-time transcription and action item generation",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "packageManager": "pnpm@8.15.0",
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "start": "pnpm --filter web start",
+    "test": "pnpm --filter web test",
+    "e2e": "pnpm --filter web e2e",
+    "format": "pnpm --filter web format",
+    "lint": "pnpm --filter web lint"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}
