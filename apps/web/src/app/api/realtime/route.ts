@@ -80,18 +80,20 @@ function generateMockActionItems() {
       description: "Revisar y corregir problemas en el sistema de autenticación",
       ownerEmail: "juan@ecosdeliderazgo.com",
       dueDate: "2025-10-25",
-      priority: "high",
+      priority: "high" as const,
       source: "Mock Demo",
-      timestampSec: Math.floor(Date.now() / 1000)
+      timestampSec: Math.floor(Date.now() / 1000),
+      status: "pending" as const
     },
     {
       title: "Enviar reporte de ventas",
       description: "Compilar y enviar el reporte mensual de ventas",
       ownerEmail: "maria@ecosdeliderazgo.com", 
       dueDate: "2025-10-24",
-      priority: "medium",
+      priority: "medium" as const,
       source: "Mock Demo",
-      timestampSec: Math.floor(Date.now() / 1000)
+      timestampSec: Math.floor(Date.now() / 1000),
+      status: "pending" as const
     }
   ];
 }

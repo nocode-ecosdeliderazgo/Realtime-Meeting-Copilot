@@ -18,12 +18,21 @@ type CreateLinearTaskResponse = {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🚀 [Linear API] Iniciando creación de tareas...');
+    
     // Validar variables de entorno
     const linearApiKey = process.env.LINEAR_API_KEY;
     const defaultTeamId = process.env.LINEAR_TEAM_ID;
     const defaultAssigneeId = process.env.LINEAR_DEFAULT_ASSIGNEE_ID;
 
+    console.log('🔑 [Linear API] Variables de entorno:', {
+      hasApiKey: !!linearApiKey,
+      hasTeamId: !!defaultTeamId,
+      hasAssigneeId: !!defaultAssigneeId
+    });
+
     if (!linearApiKey) {
+      console.error('❌ [Linear API] LINEAR_API_KEY no está configurada');
       return NextResponse.json(
         { error: 'LINEAR_API_KEY no está configurada' },
         { status: 500 }
@@ -31,6 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!defaultTeamId) {
+      console.error('❌ [Linear API] LINEAR_TEAM_ID no está configurada');
       return NextResponse.json(
         { error: 'LINEAR_TEAM_ID no está configurada' },
         { status: 500 }
@@ -39,9 +49,12 @@ export async function POST(request: NextRequest) {
 
     // Parsear y validar el cuerpo de la petición
     const body = await request.json();
+    console.log('📝 [Linear API] Datos recibidos:', JSON.stringify(body, null, 2));
+    
     const parseResult = CreateLinearTaskRequest.safeParse(body);
 
     if (!parseResult.success) {
+      console.error('❌ [Linear API] Validación fallida:', parseResult.error.errors);
       return NextResponse.json(
         { 
           error: 'Datos de entrada inválidos',
@@ -138,7 +151,8 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error in Linear API endpoint:', error);
+    console.error('❌ [Linear API] Error en endpoint:', error);
+    console.error('❌ [Linear API] Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
     
     return NextResponse.json(
       { 
