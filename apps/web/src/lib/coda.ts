@@ -186,26 +186,39 @@ export class CodaClient {
       }
     }
 
-    // Crear las celdas
+    // Mapear prioridad
+    const priorityMap: Record<string, string> = {
+      'high': 'Alta',
+      'medium': 'Media', 
+      'low': 'Baja'
+    };
+    const mappedPriority = priorityMap[actionItem.priority?.toLowerCase() || 'medium'] || 'Media';
+
+    // Crear las celdas con los nombres exactos de la tabla
     const cells: Record<string, any> = {
-      'Título': actionItem.title,
-      'Descripción': fullDescription.trim(),
-      'Estado': 'Pendiente',
-      'Prioridad': actionItem.priority || 'medium',
-      'Creado': new Date().toISOString(),
+      'titulo': actionItem.title,
+      'descripcion': fullDescription.trim(),
+      'estado': 'Pendiente',
+      'prioridad': mappedPriority,
+      'creado': new Date().toISOString(),
     };
 
     // Agregar campos opcionales solo si existen
     if (actionItem.ownerEmail) {
-      cells['OwnerEmail'] = actionItem.ownerEmail;
+      cells['owner_email'] = actionItem.ownerEmail;
     }
 
     if (dueDate) {
-      cells['Fecha Límite'] = dueDate;
+      cells['fecha_limite'] = dueDate;
     }
 
     if (sessionId) {
-      cells['Sesión'] = sessionId;
+      cells['sesion'] = sessionId;
+    }
+
+    // Agregar fuente si existe
+    if (actionItem.source) {
+      cells['fuente'] = actionItem.source;
     }
 
     return this.insertRow(docId, tableId, cells);
@@ -220,15 +233,17 @@ export class CodaClient {
       const columns = await this.getColumns(docId, tableId);
       const columnNames = columns.map(col => col.name);
 
-      const requiredColumns = ['Título'];
+      const requiredColumns = ['titulo'];
       const recommendedColumns = [
-        'Descripción',
-        'OwnerEmail', 
-        'Fecha Límite',
-        'Estado',
-        'Prioridad',
-        'Creado',
-        'Sesión'
+        'descripcion',
+        'owner_email', 
+        'fecha_limite',
+        'estado',
+        'prioridad',
+        'creado',
+        'sesion',
+        'fuente',
+        'estimacion_horas'
       ];
 
       const missingRequired = requiredColumns.filter(col => !columnNames.includes(col));
