@@ -6,6 +6,10 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Verificar configuración al cargar
+console.log('🔑 [Realtime API] OpenAI API Key configurado:', !!process.env.OPENAI_API_KEY);
+console.log('🔑 [Realtime API] OpenAI API Key (primeros 10 chars):', process.env.OPENAI_API_KEY?.substring(0, 10));
+
 // Almacén temporal de sesiones y transcripciones
 const sessions = new Map<string, { 
   transcript: string; 
@@ -50,12 +54,52 @@ export async function POST(request: NextRequest) {
 
       try {
         console.log('🎤 [Realtime API] Procesando audio chunk para sesión:', sessionId);
+        console.log('🔍 [Realtime API] Audio data size:', audioData.length, 'chars');
+        console.log('🔍 [Realtime API] MIME type:', mimeType);
+        
+        // Verificar API key
+        if (!process.env.OPENAI_API_KEY) {
+          throw new Error('OpenAI API key no configurado');
+        }
         
         // Convertir base64 a buffer
         const audioBuffer = Buffer.from(audioData, 'base64');
+        console.log('🔍 [Realtime API] Audio buffer size:', audioBuffer.length, 'bytes');
+        
+        // Verificar que el buffer no esté vacío y tenga un tamaño mínimo
+        if (audioBuffer.length === 0) {
+          throw new Error('Audio buffer vacío');
+        }
+        
+        // Whisper necesita al menos unos pocos KB de audio para procesar
+        if (audioBuffer.length < 1000) {
+          console.log('⚠️ [Realtime API] Audio muy corto, ignorando chunk:', audioBuffer.length, 'bytes');
+          return new Response(
+            JSON.stringify({
+              type: 'transcript_partial',
+              data: {
+                text: 'Audio muy corto...',
+                confidence: 0.3
+              },
+              timestamp: Date.now()
+            }),
+            { headers: { 'Content-Type': 'application/json' } }
+          );
+        }
         
         // Crear un archivo temporal en memoria para OpenAI Whisper
-        const audioFile = new File([audioBuffer], 'audio.webm', { type: mimeType });
+        // Intentar con diferentes extensiones según el MIME type
+        let fileName = 'audio.webm';
+        if (mimeType.includes('mp4')) {
+          fileName = 'audio.mp4';
+        } else if (mimeType.includes('wav')) {
+          fileName = 'audio.wav';
+        } else if (mimeType.includes('ogg')) {
+          fileName = 'audio.ogg';
+        }
+        
+        const audioFile = new File([audioBuffer], fileName, { type: mimeType });
+        console.log('🔍 [Realtime API] Audio file:', fileName, 'size:', audioFile.size, 'bytes');
         
         console.log('📡 [Realtime API] Enviando a OpenAI Whisper...');
         
@@ -68,7 +112,7 @@ export async function POST(request: NextRequest) {
         });
 
         const transcribedText = transcription.text.trim();
-        console.log('📝 [Realtime API] Transcripción:', transcribedText);
+        console.log('📝 [Realtime API] Transcripción exitosa:', transcribedText);
 
         if (transcribedText) {
           // Actualizar sesión
@@ -104,8 +148,17 @@ export async function POST(request: NextRequest) {
         
       } catch (error) {
         console.error('❌ [Realtime API] Error transcribiendo audio:', error);
+        console.error('❌ [Realtime API] Error type:', typeof error);
+        console.error('❌ [Realtime API] Error message:', error instanceof Error ? error.message : 'Unknown error');
+        console.error('❌ [Realtime API] Error stack:', error instanceof Error ? error.stack : 'No stack');
         
-        // Fallback a mock si falla OpenAI
+        // Si es un error de OpenAI, mostrar detalles
+        if (error && typeof error === 'object' && 'error' in error) {
+          console.error('❌ [Realtime API] OpenAI Error details:', JSON.stringify(error, null, 2));
+        }
+        
+        // TEMPORAL: Fallback a mock si falla OpenAI - ESTO ES LO QUE ESTÁ CAUSANDO EL PROBLEMA
+        console.log('⚠️ [Realtime API] USANDO FALLBACK MOCK - POR ESO VES DATOS SIMULADOS');
         const mockTranscript = generateMockTranscript();
         const session = sessions.get(sessionId)!;
         session.transcript += ' ' + mockTranscript;
@@ -114,9 +167,10 @@ export async function POST(request: NextRequest) {
           JSON.stringify({
             type: 'transcript_final',
             data: {
-              text: mockTranscript,
+              text: `[MOCK - Error con OpenAI] ${mockTranscript}`,
               fullTranscript: session.transcript.trim(),
-              confidence: 0.8
+              confidence: 0.8,
+              error: 'Fallback a simulación por error en OpenAI'
             },
             timestamp: Date.now()
           }),

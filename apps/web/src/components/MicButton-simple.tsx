@@ -175,10 +175,23 @@ export default function MicButton({
       });
       streamRef.current = stream;
 
-      // Configurar MediaRecorder
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus',
-      });
+      // Configurar MediaRecorder con formato más compatible
+      let mimeType = 'audio/webm;codecs=opus';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'audio/webm';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = 'audio/mp4';
+          if (!MediaRecorder.isTypeSupported(mimeType)) {
+            mimeType = '';
+          }
+        }
+      }
+      
+      console.log('🎤 [MicButton] Using MIME type:', mimeType);
+      
+      const mediaRecorder = new MediaRecorder(stream, 
+        mimeType ? { mimeType } : undefined
+      );
 
       mediaRecorder.ondataavailable = async (event) => {
         if (event.data.size > 0) {
@@ -192,7 +205,7 @@ export default function MicButton({
       };
 
       mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.start(1000); // Chunks cada segundo
+      mediaRecorder.start(3000); // Chunks cada 3 segundos para mejor calidad de transcripción
 
       onRecordingChange(true);
       setIsConnecting(false);
