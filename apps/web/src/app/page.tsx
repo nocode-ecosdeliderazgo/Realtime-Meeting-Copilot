@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 
 // Componentes dinámicos para evitar problemas con SSR
-const MicButton = dynamic(() => import('@/components/MicButton'), { ssr: false });
+const MicButton = dynamic(() => import('@/components/MicButton-simple'), { ssr: false });
 const LiveTranscript = dynamic(() => import('@/components/LiveTranscript'), { ssr: false });
 const ActionItemsPanel = dynamic(() => import('@/components/ActionItemsPanel'), { ssr: false });
 const SessionSummary = dynamic(() => import('@/components/SessionSummary'), { ssr: false });
@@ -23,19 +23,14 @@ export default function Home() {
     setSessionId(`session-${Date.now()}`);
   }, []);
 
-  const handleStartRecording = () => {
-    setIsRecording(true);
-    // Limpiar estado anterior
-    setTranscript([]);
-    setActionItems([]);
-    setSummary('');
-  };
-
-  const handleStopRecording = () => {
-    setIsRecording(false);
-  };
-
-  const handleTranscriptUpdate = (newSegment: TranscriptSegment) => {
+  const handleTranscriptUpdate = (text: string, isPartial: boolean) => {
+    const newSegment: TranscriptSegment = {
+      text,
+      timestamp: Date.now(),
+      isPartial,
+      confidence: 0.95
+    };
+    
     setTranscript(prev => {
       // Si es parcial, reemplazar el último segmento parcial o agregarlo
       if (newSegment.isPartial) {
@@ -168,11 +163,10 @@ export default function Home() {
             <div className="flex items-center space-x-4">
               <MicButton
                 isRecording={isRecording}
-                onStartRecording={handleStartRecording}
-                onStopRecording={handleStopRecording}
+                onRecordingChange={setIsRecording}
                 onTranscriptUpdate={handleTranscriptUpdate}
                 onActionItemsUpdate={handleActionItemsUpdate}
-                onSummaryUpdate={handleSummaryUpdate}
+                onSummaryUpdate={setSummary}
               />
               
               {!isRecording && (actionItems.length > 0 || summary) && (

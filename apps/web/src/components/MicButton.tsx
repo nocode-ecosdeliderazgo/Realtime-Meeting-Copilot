@@ -27,8 +27,8 @@ export default function MicButton({
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const sessionIdRef = useRef<string | null>(null);
 
   const checkMicrophonePermission = async (): Promise<boolean> => {
     try {
@@ -46,8 +46,69 @@ export default function MicButton({
     }
   };
 
-  const setupWebSocket = useCallback(() => {
-    return new Promise<WebSocket>((resolve, reject) => {
+  const startSession = async (): Promise<string> => {
+    try {
+      const response = await fetch('/api/realtime', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'start_session' })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error iniciando sesión');
+      }
+      
+      const data = await response.json();
+      return data.sessionId;
+    } catch (error) {
+      throw new Error('Error de conexión con el servidor');
+    }
+  };
+
+  const sendAudioData = async (audioBlob: Blob) => {
+    try {
+      const response = await fetch('/api/realtime', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          type: 'audio_chunk',
+          sessionId: sessionIdRef.current,
+          timestamp: Date.now()
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.type === 'transcript_final') {
+          onTranscriptUpdate(data.data.text, false, data.data.confidence);
+        }
+      }
+    } catch (error) {
+      console.error('Error enviando audio:', error);
+    }
+  };
+
+  const stopSession = async () => {
+    try {
+      const response = await fetch('/api/realtime', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          type: 'stop_session',
+          sessionId: sessionIdRef.current
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.type === 'action_items') {
+          onActionItemsUpdate(data.data);
+        }
+      }
+    } catch (error) {
+      console.error('Error finalizando sesión:', error);
+    }
+  };
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/api/realtime`;
       
