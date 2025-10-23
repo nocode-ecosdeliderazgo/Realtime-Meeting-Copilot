@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const response = await fetch('https://api.linear.app/graphql', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${linearApiKey}`,
+        'Authorization': linearApiKey,
         'Content-Type': 'application/json',
         'User-Agent': 'Realtime-Meeting-Copilot/1.0',
       },

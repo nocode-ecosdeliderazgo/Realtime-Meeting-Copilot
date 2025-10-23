@@ -56,7 +56,7 @@ export class LinearClient {
     const response = await fetch(this.apiUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
+        'Authorization': this.apiKey,
         'Content-Type': 'application/json',
       },
       body: requestBody,
