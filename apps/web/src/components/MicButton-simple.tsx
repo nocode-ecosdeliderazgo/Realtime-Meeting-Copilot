@@ -21,6 +21,7 @@ export default function MicButton({
   const [isConnecting, setIsConnecting] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -56,31 +57,63 @@ export default function MicButton({
     }
   };
 
-  const sendAudioData = async () => {
+  const sendAudioData = async (audioBlob: Blob) => {
     try {
+      // Convertir audio blob a base64
+      const arrayBuffer = await audioBlob.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      const base64Audio = btoa(Array.from(uint8Array, byte => String.fromCharCode(byte)).join(''));
+      
+      console.log('🎤 [MicButton] Enviando audio chunk:', {
+        size: audioBlob.size,
+        type: audioBlob.type,
+        sessionId: sessionIdRef.current
+      });
+      
+      setIsTranscribing(true);
+      
       const response = await fetch('/api/realtime', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           type: 'audio_chunk',
           sessionId: sessionIdRef.current,
+          audioData: base64Audio,
+          mimeType: audioBlob.type,
           timestamp: Date.now()
         })
       });
       
+      setIsTranscribing(false);
+      
       if (response.ok) {
         const data = await response.json();
-        if (data.type === 'transcript_final') {
+        console.log('📡 [MicButton] Respuesta del servidor:', data);
+        
+        if (data.type === 'transcript_partial') {
+          onTranscriptUpdate(data.data.text, true);
+        } else if (data.type === 'transcript_final') {
           onTranscriptUpdate(data.data.text, false);
+          // Mostrar transcripción completa si está disponible
+          if (data.data.fullTranscript) {
+            console.log('📝 [MicButton] Transcripción completa:', data.data.fullTranscript);
+          }
         }
+      } else {
+        console.error('Error en respuesta del servidor:', response.status);
+        setError('Error procesando audio');
       }
     } catch (error) {
       console.error('Error enviando audio:', error);
+      setError('Error procesando audio');
     }
   };
 
   const stopSession = async () => {
     try {
+      console.log('🔚 [MicButton] Finalizando sesión y extrayendo action items...');
+      setIsTranscribing(true);
+      
       const response = await fetch('/api/realtime', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -90,14 +123,28 @@ export default function MicButton({
         })
       });
       
+      setIsTranscribing(false);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('🎯 [MicButton] Action items recibidos:', data);
+        
         if (data.type === 'action_items') {
           onActionItemsUpdate(data.data);
+          
+          // Mostrar resumen si está disponible
+          if (data.fullTranscript) {
+            onSummaryUpdate(`Transcripción completa:\n\n${data.fullTranscript}`);
+          }
         }
+      } else {
+        console.error('Error finalizando sesión:', response.status);
+        setError('Error procesando la sesión');
       }
     } catch (error) {
       console.error('Error finalizando sesión:', error);
+      setError('Error finalizando sesión');
+      setIsTranscribing(false);
     }
   };
 
@@ -135,9 +182,8 @@ export default function MicButton({
 
       mediaRecorder.ondataavailable = async (event) => {
         if (event.data.size > 0) {
-          await sendAudioData();
-          // Simular transcripción en tiempo real
-          onTranscriptUpdate("Procesando audio...", true);
+          console.log('🎤 [MicButton] Audio chunk disponible:', event.data.size, 'bytes');
+          await sendAudioData(event.data);
         }
       };
 
@@ -190,21 +236,22 @@ export default function MicButton({
 
   const getButtonText = () => {
     if (isConnecting) return 'Conectando...';
-    if (isRecording) return 'Detener Grabación';
-    return 'Iniciar Grabación';
+    if (isTranscribing && !isRecording) return 'Procesando...';
+    if (isRecording) return isTranscribing ? 'Grabando & Transcribiendo...' : 'Detener Grabación';
+    return 'Iniciar Grabación Real';
   };
 
   const getButtonColor = () => {
-    if (isConnecting) return 'bg-yellow-500 hover:bg-yellow-600';
+    if (isConnecting || isTranscribing) return 'bg-yellow-500 hover:bg-yellow-600';
     if (isRecording) return 'bg-red-500 hover:bg-red-600 animate-pulse';
-    return 'bg-blue-500 hover:bg-blue-600';
+    return 'bg-green-500 hover:bg-green-600';
   };
 
   return (
     <div className="flex flex-col items-center space-y-4">
       <button
         onClick={handleClick}
-        disabled={isConnecting}
+        disabled={isConnecting || (isTranscribing && !isRecording)}
         className={`
           w-20 h-20 rounded-full text-white font-bold text-sm
           transition-all duration-200 transform hover:scale-105
@@ -213,12 +260,15 @@ export default function MicButton({
           shadow-lg hover:shadow-xl
         `}
       >
-        {isConnecting ? (
+        {isConnecting || (isTranscribing && !isRecording) ? (
           <div className="animate-spin w-6 h-6 border-2 border-white border-t-transparent rounded-full mx-auto"></div>
         ) : isRecording ? (
           <div className="w-6 h-6 bg-white rounded mx-auto"></div>
         ) : (
-          <div className="w-6 h-6 bg-white rounded-full mx-auto"></div>
+          <div className="w-6 h-6 bg-white rounded-full mx-auto relative">
+            {/* Icono de micrófono */}
+            <div className="absolute inset-1 bg-green-500 rounded-full"></div>
+          </div>
         )}
       </button>
       

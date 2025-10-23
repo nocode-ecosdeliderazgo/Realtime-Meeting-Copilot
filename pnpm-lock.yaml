@@ -47,6 +47,9 @@ importers:
       next:
         specifier: 14.2.0
         version: 14.2.0(@playwright/test@1.56.1)(react-dom@18.3.1)(react@18.3.1)
+      openai:
+        specifier: ^6.6.0
+        version: 6.6.0(ws@8.18.3)(zod@3.25.76)
       postcss:
         specifier: ^8.4.0
         version: 8.5.6
@@ -3279,6 +3282,22 @@ packages:
     dependencies:
       mimic-fn: 4.0.0
     dev: true
+
+  /openai@6.6.0(ws@8.18.3)(zod@3.25.76):
+    resolution: {integrity: sha512-1yWk4cBsHF5Bq9TreHYOHY7pbqdlT74COnm8vPx7WKn36StS+Hyk8DdAitnLaw67a5Cudkz5EmlFQjSrNnrA2w==}
+    hasBin: true
+    peerDependencies:
+      ws: ^8.18.0
+      zod: ^3.25 || ^4.0
+    peerDependenciesMeta:
+      ws:
+        optional: true
+      zod:
+        optional: true
+    dependencies:
+      ws: 8.18.3
+      zod: 3.25.76
+    dev: false
 
   /optionator@0.9.4:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
