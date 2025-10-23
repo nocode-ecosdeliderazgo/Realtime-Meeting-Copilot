@@ -81,10 +81,14 @@ export async function POST(request: NextRequest) {
     
     for (const item of items) {
       try {
+        console.log(`📝 [Linear API] Procesando item: "${item.title}"`);
+        
         // Resolver assignee si se proporcionó email
         const assigneeId = item.ownerEmail 
           ? await linearClient.resolveAssigneeId(item.ownerEmail, defaultTeamId)
           : defaultAssigneeId;
+
+        console.log(`👤 [Linear API] Assignee resuelto: ${assigneeId || 'default'}`);
 
         // Preparar descripción
         let description = item.description || '';

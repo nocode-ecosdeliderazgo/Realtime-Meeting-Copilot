@@ -78,7 +78,7 @@ function generateMockActionItems() {
     {
       title: "Revisar código del login",
       description: "Revisar y corregir problemas en el sistema de autenticación",
-      ownerEmail: "juan@ecosdeliderazgo.com",
+      ownerEmail: "nocode@ecosdeliderazgo.com", // Tu email real
       dueDate: "2025-10-25",
       priority: "high" as const,
       source: "Mock Demo",
@@ -88,7 +88,7 @@ function generateMockActionItems() {
     {
       title: "Enviar reporte de ventas",
       description: "Compilar y enviar el reporte mensual de ventas",
-      ownerEmail: "maria@ecosdeliderazgo.com", 
+      // Sin ownerEmail para usar el default assignee
       dueDate: "2025-10-24",
       priority: "medium" as const,
       source: "Mock Demo",

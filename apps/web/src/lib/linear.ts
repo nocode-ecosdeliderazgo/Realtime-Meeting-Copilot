@@ -39,26 +39,57 @@ export class LinearClient {
   }
 
   private async graphqlRequest<T>(query: string, variables: any = {}): Promise<T> {
+    console.log('🔄 [Linear GraphQL] Enviando consulta:', {
+      query: query.trim(),
+      variables
+    });
+    console.log('🔑 [Linear] API Key (primeros 15 chars):', this.apiKey.substring(0, 15));
+    
+    const requestBody = JSON.stringify({
+      query,
+      variables,
+    });
+    
+    console.log('📤 [Linear] Request body completo:', requestBody);
+    console.log('🌐 [Linear] URL de destino:', this.apiUrl);
+    
     const response = await fetch(this.apiUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        query,
-        variables,
-      }),
+      body: requestBody,
+    });
+
+    console.log('📥 [Linear] Response status:', response.status);
+    console.log('📥 [Linear] Response headers:', Object.fromEntries(response.headers.entries()));
+    
+    const responseText = await response.text();
+    console.log('📥 [Linear] Response raw text:', responseText);
+    
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('❌ [Linear] JSON Parse Error:', parseError);
+      console.error('❌ [Linear] Raw response that failed to parse:', responseText);
+      throw new Error(`Failed to parse JSON response: ${parseError}`);
+    }
+    
+    console.log('📦 [Linear GraphQL] Respuesta parseada:', {
+      status: response.status,
+      result
     });
 
     if (!response.ok) {
+      console.error('❌ [Linear GraphQL] Error HTTP:', response.status, result);
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    const result = await response.json();
-
     if (result.errors) {
-      throw new Error(`GraphQL errors: ${JSON.stringify(result.errors)}`);
+      console.error('❌ [Linear GraphQL] Errores GraphQL:', result.errors);
+      throw new Error(`GraphQL Error: ${result.errors.map((e: any) => e.message).join(', ')}`);
     }
 
     return result.data;
@@ -215,10 +246,18 @@ export class LinearClient {
     if (!email) return undefined;
 
     try {
+      console.log(`🔍 [Linear] Buscando usuario con email: ${email}`);
       const user = await this.getUserByEmail(email);
-      return user?.id;
+      
+      if (user) {
+        console.log(`✅ [Linear] Usuario encontrado: ${user.name} (${user.id})`);
+        return user.id;
+      } else {
+        console.log(`⚠️ [Linear] Usuario no encontrado para email: ${email}`);
+        return undefined;
+      }
     } catch (error) {
-      console.warn(`Could not resolve assignee for email ${email}:`, error);
+      console.warn(`❌ [Linear] Error buscando usuario ${email}:`, error instanceof Error ? error.message : error);
       return undefined;
     }
   }
